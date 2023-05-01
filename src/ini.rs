@@ -11,17 +11,18 @@ enum INIMode {
   Block,
 }
 
-struct INI {
-  path: String,
-  data: HashMap<String, Vec<String>>,
+pub struct INI {
+  pub path: String,
+  pub data: HashMap<String, Vec<String>>,
 }
 
+
 impl INI {
-  fn new(path: &str) -> Self {
+  pub fn new(path: &str) -> Self {
     Self { path: String::from(path), data: HashMap::new() }
   }
 
-  fn get_kvp(&self, key: &String, delim: Option<char>) -> HashMap<&str, &str> {
+  pub fn get_kvp(&self, key: &String, delim: Option<char>) -> HashMap<&str, &str> {
     let mut ret: HashMap<&str, &str> = HashMap::new();
     
     if !self.data.contains_key(key) {
@@ -45,21 +46,22 @@ impl INI {
     ret
   }
   
-  fn set_kvp(&self, key: &String, val: HashMap<&str, &str>, delim: Option<char>) {
+  pub fn set_kvp(&mut self, key: &String, val: HashMap<&str, &str>, delim: Option<char>) {
     let delimiter: char = match delim {
       Some(d) => d,
       None => '=',
     };
     
-    block: Vector<String> = Vector<String>::new();
-    line: String = String::new();
+    let mut block: Vec<String> = Vec::new();
     
-    for (key, value) in val.iter() {
-      todo!("Save each key-value pair in vector and return");
+    for (k, v) in val.iter() {
+      block.push(format!("{} {} {}", k, delimiter, v));
     }
+    
+    self.data.entry(key.clone()).or_insert(block);
   }
   
-  fn load(&mut self) {
+  pub fn load(&mut self) {
     let path = Path::new(self.path.as_str());
     let display = path.display();
     let file = match File::open(&path) {
@@ -77,6 +79,10 @@ impl INI {
     for line in buffer {
       lineno += 1;
       if let Ok(data) = line {
+        if data.len() == 0 {
+          continue;
+        }
+        
         mode = match data.chars().nth(0).unwrap() {
           '[' => INIMode::Title,
           _ => INIMode::Block,
@@ -101,10 +107,12 @@ impl INI {
       }
     }
     
-    // TODO
+    if title.len() > 0 {
+      self.data.entry(title.clone()).or_insert(block.clone());
+    }
   }
   
-  fn save(&self) {
+  pub fn save(&self) {
     let path = OpenOptions::new()
                             .write(true)
                             .create_new(true)

@@ -1,80 +1,66 @@
-use std::fs::File;
-use std::fs::OpenOptions;
 use std::path::Path;
-use std::io::{self, BufRead, BufWriter};
+use std::fs::{File, OpenOptions};
+use std::io::{Write, BufRead, BufReader, BufWriter};
 use std::collections::HashMap;
-use std::io::prelude::*;
 
-enum INIMode {
-  Undefined,
-  Title,
-  Block,
-}
 
 pub struct INI {
-  pub path: String,
   pub data: HashMap<String, Vec<String>>,
+  pub prefix: String,
+  pub delim: char,
 }
 
 
 impl INI {
-  pub fn new(path: &str) -> Self {
-    Self { path: String::from(path), data: HashMap::new() }
+  pub fn new() -> Self {
+    Self { data: HashMap::new(), prefix: String::new(), delim: '=' }
   }
-
-  pub fn get_kvp(&self, key: &String, delim: Option<char>) -> HashMap<&str, &str> {
-    let mut ret: HashMap<&str, &str> = HashMap::new();
+  
+  pub fn get_kvp(&self, key: &String) -> HashMap<String, String> {
+    let mut ret: HashMap<String, String> = HashMap::new();
     
     if !self.data.contains_key(key) {
       panic!("Could not locate key {}", key);
     }
     
-    let delimiter: char = match delim {
-      Some(d) => d,
-      None => '=',
-    };
-    
-    let block = self.data.get(key).unwrap();
+    let mut block = self.data.get(key).unwrap().clone();
+    block.retain(|a| a.len() > 0);  // Remove empty lines
+    block.retain(INI::is_blank);    // Remove blank lines
+    block.retain(INI::is_comment);  // Remove comments
     
     for line in block {
-      let didx = line.chars().position(|c| c == delimiter).unwrap();
-      let key = line[0..didx].trim();
-      let val = line[didx+1..].trim();
+      let didx = line.chars().position(|c| c == self.delim).unwrap();
+      let key = String::from(line[0..didx].trim());
+      let val = String::from(line[didx+1..].trim());
       ret.insert(key, val);
     }
     
     ret
   }
   
-  pub fn set_kvp(&mut self, key: &String, val: HashMap<&str, &str>, delim: Option<char>) {
-    let delimiter: char = match delim {
-      Some(d) => d,
-      None => '=',
-    };
-    
+  pub fn set_kvp(&mut self, key: &String, val: HashMap<String, String>) {    
     let mut block: Vec<String> = Vec::new();
     
     for (k, v) in val.iter() {
-      block.push(format!("{} {} {}", k, delimiter, v));
+      block.push(format!("{} {} {}", k, self.delim, v));
     }
     
     self.data.entry(key.clone()).or_insert(block);
   }
   
-  pub fn load(&mut self) {
-    let path = Path::new(self.path.as_str());
-    let display = path.display();
+  pub fn load(&mut self, ini_path: &str) {
+    let path = Path::new(ini_path);
     let file = match File::open(&path) {
-      Err(why) => panic!("Couldn't open {}: {}", display, why),
+      Err(why) => panic!("Couldn't open {}: {}", ini_path, why),
       Ok(file) => file,
     };
     
-    let buffer = io::BufReader::new(file).lines();
+    let buffer = BufReader::new(file).lines();
     let mut title: String = String::new();
     let mut block: Vec<String> = Vec::new();
     let mut eidx: usize;
     let mut lineno: usize = 0;
-    let mut mode: INIMode;
+    let mut is_title: bool;
     
     for line in buffer {
       lineno += 1;
@@ -83,14 +69,14 @@ impl INI {
           continue;
         }
         
-        mode = match data.chars().nth(0).unwrap() {
-          '[' => INIMode::Title,
-          _ => INIMode::Block,
+        is_title = match data.chars().nth(0).unwrap() {
+          '[' => true,
+          _ => false,
         };
         
-        if let INIMode::Block = mode {
+        if is_title {
           block.push(data);
-        } else if let INIMode::Title = mode {
+        } else {
           eidx = match data.chars().position(|c| c == ']') {
             Some(idx) => idx,
             None => panic!("Found opening bracket without matching brace: Line {}", lineno),
@@ -112,11 +98,11 @@ impl INI {
     }
   }
   
-  pub fn save(&self) {
+  pub fn save(&self, ini_path: &str) {
     let path = OpenOptions::new()
                             .write(true)
                             .create_new(true)
-                            .open(self.path.as_str())
+                            .open(ini_path)
                             .unwrap();
     let mut buffer = BufWriter::new(path);
     
@@ -129,5 +115,29 @@ impl INI {
         buffer.write_all(b"\n").unwrap();
       }
     }
+  }
+  
+  fn is_blank(check: &String) -> bool {
+    for c in check.chars() {
+      if c == ' ' || c == '\t' {
+        continue;
+      }
+      
+      return c != '\n';
+    }
+    
+    false
+  }
+  
+  fn is_comment(check: &String) -> bool {
+    for c in check.chars() {
+      if c == ' ' || c == '\t' {
+        continue;
+      }
+      
+      return c != '#';
+    }
+    
+    false
   }
 }

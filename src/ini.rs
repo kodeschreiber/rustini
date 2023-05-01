@@ -3,7 +3,8 @@ use std::fs::{File, OpenOptions};
 use std::io::{Write, BufRead, BufReader, BufWriter};
 use std::collections::HashMap;
 
-
+/// The fields can be modified before using their relative function calls
+/// See 'load()' for 'prefix and 'get/set_kvp()' for 'delim', respectively.
 pub struct INI {
   pub data: HashMap<String, Vec<String>>,
   pub prefix: String,
@@ -16,6 +17,8 @@ impl INI {
     Self { data: HashMap::new(), prefix: String::new(), delim: '=' }
   }
   
+  /// Set the 'delim' field before running this function to use a 
+  /// delimiter other than '='.
   pub fn get_kvp(&self, key: &String) -> HashMap<String, String> {
     if !self.data.contains_key(key) {
       panic!("Could not locate key {}", key);
@@ -45,6 +48,8 @@ impl INI {
     ret
   }
   
+  /// Set the 'delim' field before running this function to use a 
+  /// delimiter other than '='
   pub fn set_kvp(&mut self, key: &String, val: HashMap<String, String>) {    
     let mut block: Vec<String> = Vec::new();
     
@@ -52,10 +57,13 @@ impl INI {
       block.push(format!("{} {} {}", k, self.delim, v));
     }
     
-    self.data.entry(key.clone()).or_insert(block);
+    self.data.insert(key.clone(), block);
   }
   
-  pub fn load(&mut self, ini_path: &str) {
+  /// Set the 'prefix' field before running this function to 
+  /// have each key prefixed with that field. Be sure to add an
+  /// underscore if desired.
+  pub fn load(&mut self, ini_path: &str) -> Result<(), String> {
     let path = Path::new(ini_path);
     let file = match File::open(&path) {
       Err(why) => panic!("Couldn't open {}: {}", ini_path, why),
@@ -81,12 +89,12 @@ impl INI {
           _ => false,
         };
         
-        if is_title {
+        if !is_title {
           block.push(data);
         } else {
           eidx = match data.chars().position(|c| c == ']') {
             Some(idx) => idx,
-            None => panic!("Found opening bracket without matching brace: Line {}", lineno),
+            None => Err(format!("Found opening bracket without matching bracket: Line {}", lineno).to_string())?,
           };
           
           if title.len() > 0 {  // Currently processing a block => Save block
@@ -103,6 +111,8 @@ impl INI {
     if title.len() > 0 {
       self.data.entry(title.clone()).or_insert(block.clone());
     }
+    
+    Ok(())
   }
   
   pub fn save(&self, ini_path: &str) {

@@ -17,11 +17,11 @@ impl INI {
   }
   
   pub fn get_kvp(&self, key: &String) -> HashMap<String, String> {
-    let mut ret: HashMap<String, String> = HashMap::new();
-    
     if !self.data.contains_key(key) {
       panic!("Could not locate key {}", key);
     }
+    
+    let mut ret: HashMap<String, String> = HashMap::new();
     
     let mut block = self.data.get(key).unwrap().clone();
     block.retain(|a| a.len() > 0);  // Remove empty lines
@@ -29,7 +29,14 @@ impl INI {
     block.retain(INI::is_comment);  // Remove comments
     
     for line in block {
-      let didx = line.chars().position(|c| c == self.delim).unwrap();
+      let didx = match line.chars().position(|c| c == self.delim) {
+        Some(d) => d,
+        None => {
+          println!("Could not locate delimiter in line: {}", line);
+          continue;
+        }
+      };
+      
       let key = String::from(line[0..didx].trim());
       let val = String::from(line[didx+1..].trim());
       ret.insert(key, val);
@@ -86,9 +93,9 @@ impl INI {
             self.data.entry(title.clone()).or_insert(block.clone());
           }
           
+          block.clear();
           title.clear();
           title.push_str(data.to_string()[1..eidx].trim());
-          block.clear();
         }
       }
     }

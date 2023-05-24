@@ -6,7 +6,6 @@ edition = "2021"
 license-file = "LICENSE.mit"
 description = "An INI parser for Rust"
 homepage = "https://github.com/kodeschreiber/rustini"
-documentation = "README.md"
 repository = "https://github.com/kodeschreiber/rustini"
 readme = "README.md"
 keywords = ["ini", "parser"]

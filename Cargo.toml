@@ -15,6 +15,7 @@ categories = ["config", "data-structures", "filesystem", "parser-implementations
 exclude = [
     "test/*",
     ".gitignore",
+    "Makefile",
 ]
 
 [dependencies]

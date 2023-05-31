@@ -1,28 +1,44 @@
 use std::path::Path;
 use std::fs::{File, OpenOptions};
-use std::io::{Write, BufRead, BufReader, BufWriter};
+use std::io::{Write, BufRead, BufReader, BufWriter, ErrorKind};
+use std::io::ErrorKind::NotFound;
 use std::collections::HashMap;
 
 /// The fields can be modified before using their relative function calls
 /// See 'load()' for 'prefix and 'get/set_kvp()' for 'delim', respectively.
 pub struct INI {
   pub data: HashMap<String, Vec<String>>,
-  pub prefix: String,
-  pub delim: char,
 }
 
 
 impl INI {
   pub fn new() -> Self {
-    Self { data: HashMap::new(), prefix: String::new(), delim: '=' }
+    Self { data: HashMap::new() }
   }
   
-  /// Set the 'delim' field before running this function to use a 
-  /// delimiter other than '='.
-  pub fn get_kvp(&self, key: &String) -> HashMap<String, String> {
+  pub fn get(&self, key: &String) -> Result<Vec<String>,ErrorKind> {
+    match self.data.get(key) {
+      Some(val) => Ok(val.clone()),
+      None => Err(NotFound),
+    }
+  }
+  
+  // Replaces orginal vector; unable to update the old vector due
+  // to mutability problems.
+  pub fn set(&mut self, key: &String, val: Vec<String>) {
+    self.data.insert(key.to_string(), val.clone());
+  }
+  
+  /// Default delimiter is '='
+  pub fn get_kvp(&self, key: &String, delimiter: Option<char>) -> HashMap<String, String> {
     if !self.data.contains_key(key) {
       panic!("Could not locate key {}", key);
     }
+    
+    let delim: char = match delimiter {
+      Some(val) => val.clone(),
+      None => '=',
+    };
     
     let mut ret: HashMap<String, String> = HashMap::new();
     
@@ -32,7 +48,7 @@ impl INI {
     block.retain(INI::is_comment);  // Remove comments
     
     for line in block {
-      let didx = match line.chars().position(|c| c == self.delim) {
+      let didx = match line.chars().position(|c| c == delim) {
         Some(d) => d,
         None => {
           println!("Could not locate delimiter in line: {}", line);
@@ -48,26 +64,33 @@ impl INI {
     ret
   }
   
-  /// Set the 'delim' field before running this function to use a 
-  /// delimiter other than '='
-  pub fn set_kvp(&mut self, key: &String, val: HashMap<String, String>) {    
+  /// Default delimiter is '='
+  pub fn set_kvp(&mut self, key: &String, val: HashMap<String, String>, delimiter: Option<char>) {    
     let mut block: Vec<String> = Vec::new();
     
+    let delim: char = match delimiter {
+      Some(val) => val.clone(),
+      None => '=',
+    };
+    
     for (k, v) in val.iter() {
-      block.push(format!("{} {} {}", k, self.delim, v));
+      block.push(format!("{} {} {}", k, delim, v));
     }
     
     self.data.insert(key.clone(), block);
   }
   
-  /// Set the 'prefix' field before running this function to 
-  /// have each key prefixed with that field. Be sure to add an
-  /// underscore if desired.
-  pub fn load(&mut self, ini_path: &str) -> Result<(), String> {
+  /// Be sure to add an underscore if desired for 'prefix'.
+  pub fn load(&mut self, ini_path: &str, prefix: Option<String>) -> Result<(), String> {
     let path = Path::new(ini_path);
     let file = match File::open(&path) {
       Err(why) => panic!("Couldn't open {}: {}", ini_path, why),
       Ok(file) => file,
+    };
+    
+    let pre: String = match prefix {
+      Some(val) => val.clone(),
+      None => String::new(),
     };
     
     let buffer = BufReader::new(file).lines();
@@ -98,7 +121,7 @@ impl INI {
           };
           
           if title.len() > 0 {  // Currently processing a block => Save block
-            self.data.entry(title.clone()).or_insert(block.clone());
+            self.data.entry(pre.clone() + title.as_str()).or_insert(block.clone());
           }
           
           block.clear();
@@ -109,7 +132,7 @@ impl INI {
     }
     
     if title.len() > 0 {
-      self.data.entry(title.clone()).or_insert(block.clone());
+      self.data.entry(pre.clone() + title.as_str()).or_insert(block.clone());
     }
     
     Ok(())

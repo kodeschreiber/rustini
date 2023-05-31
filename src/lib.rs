@@ -11,7 +11,7 @@ mod tests {
   #[test]
   fn load() {
     let mut file: INI = INI::new();
-    file.load("test/normal.ini").unwrap();
+    file.load("test/normal.ini", None).unwrap();
     
     assert_eq!(file.data.keys().len(), 4);
   }
@@ -19,7 +19,7 @@ mod tests {
   #[test]
   fn access() {
     let mut file: INI = INI::new();
-    file.load("test/normal.ini").unwrap();
+    file.load("test/normal.ini", None).unwrap();
     
     let block: &Vec<String> = file.data.get(&"simple".to_string()).unwrap();
     
@@ -29,10 +29,10 @@ mod tests {
   #[test]
   fn kvp() {
     let mut ini: INI = INI::new();
-    ini.load("test/normal.ini").unwrap();
+    ini.load("test/normal.ini", None).unwrap();
     
     let chosen_key: String = String::from("dict_test");
-    let mut dict: HashMap<String, String> = ini.get_kvp(&chosen_key);
+    let mut dict: HashMap<String, String> = ini.get_kvp(&chosen_key, None);
     
     assert_eq!(dict.keys().len(), 4);
     
@@ -45,9 +45,9 @@ mod tests {
     
     dict.insert("stuff".to_string(), "things".to_string());
     
-    ini.set_kvp(&chosen_key, dict);
+    ini.set_kvp(&chosen_key, dict, None);
     
-    let new_dict: HashMap<String, String> = ini.get_kvp(&chosen_key);
+    let new_dict: HashMap<String, String> = ini.get_kvp(&chosen_key, None);
     
     assert_eq!(new_dict.get(&"stuff".to_string()), Some(&"things".to_string()));
   }
@@ -55,7 +55,7 @@ mod tests {
   #[test]
   fn save() {
     let mut file: INI = INI::new();
-    file.load("test/normal.ini").unwrap();
+    file.load("test/normal.ini", None).unwrap();
     
     file.save("test/saved.ini");
     
@@ -67,7 +67,7 @@ mod tests {
   #[test]
   fn bad_title() {
     let mut file: INI = INI::new();
-    file.load("test/bad_title.ini").unwrap();
+    file.load("test/bad_title.ini", None).unwrap();
     
     assert!(!file.data.contains_key(&"Bad Title".to_string()));
   }
@@ -75,7 +75,7 @@ mod tests {
   #[test]
   fn missing_end() {
     let mut file: INI = INI::new();
-    match file.load("test/missing_end.ini") {
+    match file.load("test/missing_end.ini", None) {
       Ok(()) => panic!("Internal filters did not catch the last bracket"),
       Err(_) => (),
     }

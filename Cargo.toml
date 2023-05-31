@@ -1,8 +1,9 @@
 [package]
 name = "rustini"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 
+license = "MIT"
 license-file = "LICENSE.mit"
 description = "An INI parser for Rust"
 homepage = "https://github.com/kodeschreiber/rustini"

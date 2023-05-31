@@ -24,18 +24,7 @@ Rustini is an INI parser for RUST. You can:
 - Write a HashMap to a file
 - Parse a block of data from a tag as Key-Value pairs
 - Set Key-Value pairs as blocks within the HashMap
-
-The Structure of the INI is:
-- data: HashMap<String, String>
-- prefix: String
-- delim: char
-
-`prefix` can be used to set a custom key prefix for elements that 
-are loaded from an INI file. `delim` allows you to choose the 
-delimiter for parsing key-Value pairs (defaults to `'='`)
-
-## Building
-Simply run `make`. Cargo will build the library, documentation, and tests.
+- Set/Get a String Vector from a data block
 
 ## Documentation
 After building this package, you can open the documentation in your browser. 

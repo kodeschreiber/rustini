@@ -80,4 +80,28 @@ mod tests {
       Err(_) => (),
     }
   }
+  
+  #[test]
+  fn setter_getter() {
+    let mut ini: INI = INI::new();
+    ini.load("test/normal.ini", None).unwrap();
+    
+    let key = String::from("dict_test");
+    let mut block = ini.get(&key).unwrap();
+    
+    block.push(String::from("added_key = new"));
+    
+    ini.set(&key, block);
+    
+    ini.save("new.ini");
+    
+    let mut ini2: INI = INI::new();
+    ini2.load("new.ini", None).unwrap();
+
+    let mut block2 = ini.get(&key).unwrap();
+        
+    assert!(block2.last().unwrap().starts_with("added_key = new"));
+    
+    remove_file("new.ini");
+  }
 }

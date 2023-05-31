@@ -141,7 +141,7 @@ impl INI {
   pub fn save(&self, ini_path: &str) {
     let path = OpenOptions::new()
                             .write(true)
-                            .create_new(true)
+                            .create(true)
                             .open(ini_path)
                             .unwrap();
     let mut buffer = BufWriter::new(path);
@@ -152,7 +152,7 @@ impl INI {
       buffer.write_all(b"]\n").unwrap();
       for line in block {
         buffer.write_all(line.as_bytes()).unwrap();
-        buffer.write_all(b"\n").unwrap();
+        buffer.write_all(b"\n\n").unwrap();
       }
     }
   }
